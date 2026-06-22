@@ -19,7 +19,7 @@ const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY ||
 
 let supabase: any = null;
 let isSupabaseActive = false;
-let forceLocalMode = true; // Use local JSON file database by default to bypass Supabase limits and errors
+let forceLocalMode = (supabaseUrl && supabaseKey) ? false : true; // Default to false if Supabase is configured so we connect to it immediately, else true
 
 if (supabaseUrl && supabaseKey) {
   try {
