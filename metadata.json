@@ -1,0 +1,6 @@
+{
+  "name": "Kakinada House Finder (No Broker)",
+  "description": "Find and list direct individual houses, apartments, and small houses for rent or sale in Kakinada areas with direct owner contact and absolutely zero brokers.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
