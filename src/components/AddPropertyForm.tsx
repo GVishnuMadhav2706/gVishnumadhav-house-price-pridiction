@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, MapPin, Tag, Landmark, User, Phone, AlignLeft, Info, HelpCircle, CheckCircle2, Ruler, Droplets, Car, Calendar, Sparkles } from 'lucide-react';
+import { Building2, MapPin, Tag, Landmark, User, Phone, AlignLeft, Info, HelpCircle, CheckCircle2, Ruler, Droplets, Car, Calendar, Sparkles, Upload, Image, X } from 'lucide-react';
 import { KAKINADA_LOCATIONS, PropertyType, ListingType, Property } from '../types';
 
 interface AddPropertyFormProps {
@@ -9,23 +9,23 @@ interface AddPropertyFormProps {
 const PRESET_IMAGES = [
   {
     label: "G+1 Indian Villa",
-    url: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&w=800&q=80",
-    preview: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&w=150&q=80"
+    url: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=800&q=80",
+    preview: "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?auto=format&fit=crop&w=150&q=80"
   },
   {
-    label: "Modern Flat Roof House",
-    url: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80",
-    preview: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=150&q=80"
+    label: "Modern G+1 Villa",
+    url: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=800&q=80",
+    preview: "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=150&q=80"
   },
   {
-    label: "Indian City Flat Block",
-    url: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80",
-    preview: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=150&q=80"
+    label: "Indian Flat Block",
+    url: "https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?auto=format&fit=crop&w=800&q=80",
+    preview: "https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?auto=format&fit=crop&w=150&q=80"
   },
   {
-    label: "Cozy Suburb Cottage",
-    url: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=800&q=80",
-    preview: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=150&q=80"
+    label: "Direct Brick House",
+    url: "https://images.unsplash.com/photo-1626808642875-0aa545452faa?auto=format&fit=crop&w=800&q=80",
+    preview: "https://images.unsplash.com/photo-1626808642875-0aa545452faa?auto=format&fit=crop&w=150&q=80"
   }
 ];
 
@@ -58,6 +58,8 @@ export default function AddPropertyForm({ onSuccess }: AddPropertyFormProps) {
 
   // Selector state for image option
   const [selectedPresetIdx, setSelectedPresetIdx] = useState<number>(0);
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
   React.useEffect(() => {
     // default set first preset as base
@@ -69,6 +71,75 @@ export default function AddPropertyForm({ onSuccess }: AddPropertyFormProps) {
   const handleSelectPreset = (url: string, index: number) => {
     setImageUrl(url);
     setSelectedPresetIdx(index);
+    setUploadedFileName(null);
+  };
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setError("Selected image size is too large. Please select an image under 10MB to upload successfully.");
+        return;
+      }
+      setUploadedFileName(file.name);
+      setSelectedPresetIdx(-1);
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setImageUrl(base64String);
+      };
+      reader.onerror = () => {
+        setError("Failed to read local photo. Please try a different photo or copy-paste an image link.");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (!file.type.startsWith("image/")) {
+        setError("Please drop a valid image file (PNG, JPG, JPEG, WEBP) only.");
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        setError("Selected image size is too large. Please select an image under 10MB to upload successfully.");
+        return;
+      }
+      setUploadedFileName(file.name);
+      setSelectedPresetIdx(-1);
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setImageUrl(base64String);
+      };
+      reader.onerror = () => {
+        setError("Failed to read local photo. Please try a different photo or copy-paste an image link.");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerRemoveUpload = () => {
+    setUploadedFileName(null);
+    setSelectedPresetIdx(0);
+    setImageUrl(PRESET_IMAGES[0].url);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -572,13 +643,93 @@ export default function AddPropertyForm({ onSuccess }: AddPropertyFormProps) {
             </div>
           </div>
 
-          {/* Section 5: Cover Photo */}
-          <div className="space-y-3 pt-4 border-t border-slate-100">
+          {/* Section 5: Cover Photo Elevation with Local Folder Upload */}
+          <div className="space-y-4 pt-4 border-t border-slate-100">
             <div>
-              <h3 className="text-xs font-extrabold text-indigo-900 uppercase tracking-wider">5. Cover Photo Elevation</h3>
-              <p className="text-[10px] text-slate-400 mt-1">Select one of our high quality Indian real estate elevations or supply a custom image URL link.</p>
+              <h3 className="text-xs font-extrabold text-indigo-950 uppercase tracking-wider flex items-center gap-2">
+                <Image className="w-4 h-4 text-indigo-600" />
+                <span>5. Property Cover Photo</span>
+                <span className="text-rose-500">*</span>
+              </h3>
+              <p className="text-[10px] text-slate-500 mt-1">
+                Upload a real photo of the house from your computer/mobile folders, select one of our premium Indian home templates, or paste a web address.
+              </p>
             </div>
 
+            {/* Folder Image Uploader Zone */}
+            <div 
+              onDragEnter={handleDrag}
+              onDragOver={handleDrag}
+              onDragLeave={handleDrag}
+              onDrop={handleDrop}
+              className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all relative overflow-hidden flex flex-col items-center justify-center gap-3 ${
+                dragActive 
+                  ? 'border-indigo-600 bg-indigo-50/70 scale-99' 
+                  : uploadedFileName 
+                    ? 'border-emerald-500 bg-emerald-50/10' 
+                    : 'border-slate-200 hover:border-slate-300 bg-slate-50 hover:bg-slate-50/50'
+              }`}
+              id="file-uploader-dragzone"
+            >
+              <input 
+                type="file"
+                accept="image/*"
+                onChange={handleImageFileChange}
+                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                id="folder-image-picker"
+                title="Select a photo of the house from a folder"
+              />
+
+              {imageUrl && imageUrl.startsWith('data:image/') ? (
+                // Base64 File Preview Card
+                <div className="flex flex-col items-center gap-2 w-full max-w-xs relative z-20">
+                  <div className="relative w-32 h-20 sm:w-40 sm:h-24 rounded-lg overflow-hidden border border-emerald-300 shadow-sm">
+                    <img 
+                      src={imageUrl} 
+                      alt="Local Upload Preview" 
+                      className="w-full h-full object-cover" 
+                      referrerPolicy="no-referrer"
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        triggerRemoveUpload();
+                      }}
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-slate-900/80 text-white flex items-center justify-center hover:bg-rose-600 transition-colors cursor-pointer z-35"
+                      title="Remove custom photo"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-bold text-emerald-600 truncate max-w-xs">{uploadedFileName || 'Custom Photo Connected'}</p>
+                    <p className="text-[10px] text-slate-400">Successfully read & ready to publish!</p>
+                  </div>
+                </div>
+              ) : (
+                // Folder Pick Placeholder
+                <div className="py-2 flex flex-col items-center gap-1.5 pointer-events-none">
+                  <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 shadow-xs mb-1">
+                    <Upload className="w-5 h-5 animate-bounce" />
+                  </div>
+                  <p className="text-xs font-bold text-slate-700">
+                    <span className="text-indigo-600 hover:underline">Click to browse folders</span> or drag & drop photo here
+                  </p>
+                  <p className="text-[10px] text-slate-400">Supports PNG, JPG, JPEG, WEBP files up to 10MB</p>
+                </div>
+              )}
+            </div>
+
+            {/* Presets Separator Line */}
+            <div className="relative flex py-2 items-center">
+              <div className="flex-grow border-t border-slate-100"></div>
+              <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Or Use High Quality Indian Templates</span>
+              <div className="flex-grow border-t border-slate-100"></div>
+            </div>
+
+            {/* High Quality Indian Templates Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="image-preset-selectors">
               {PRESET_IMAGES.map((preset, idx) => (
                 <button
@@ -587,7 +738,7 @@ export default function AddPropertyForm({ onSuccess }: AddPropertyFormProps) {
                   onClick={() => handleSelectPreset(preset.url, idx)}
                   className={`relative aspect-video sm:aspect-square border-2 rounded-xl overflow-hidden cursor-pointer transition-all ${
                     selectedPresetIdx === idx 
-                      ? 'border-indigo-600 ring-4 ring-indigo-100 scale-98' 
+                      ? 'border-indigo-600 ring-4 ring-indigo-100 scale-98 font-bold' 
                       : 'border-slate-200 hover:border-slate-300 hover:scale-102'
                   }`}
                 >
@@ -595,20 +746,28 @@ export default function AddPropertyForm({ onSuccess }: AddPropertyFormProps) {
                   <span className="absolute bottom-0 inset-x-0 bg-slate-950/80 text-white text-[9px] py-1 truncate text-center font-semibold">
                     {preset.label}
                   </span>
+                  {selectedPresetIdx === idx && (
+                    <span className="absolute top-1.5 right-1.5 text-[8px] bg-indigo-600 text-white font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                      Selected
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
 
-            <div className="flex flex-col gap-1 mt-1">
+            {/* Custom URL pasting zone */}
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-bold text-slate-500">Or copy-paste any direct web image URL address:</label>
               <input
                 type="url"
-                placeholder="Or paste standard direct image URL link (jpg, png, unsplash structure)..."
-                value={imageUrl}
+                placeholder="e.g., https://my-image-site.com/house-front.jpg"
+                value={imageUrl && !imageUrl.startsWith('data:image/') ? imageUrl : ''}
                 onChange={(e) => {
                   setImageUrl(e.target.value);
                   setSelectedPresetIdx(-1);
+                  setUploadedFileName(null);
                 }}
-                className="bg-slate-50 border border-slate-200 rounded-xl text-slate-850 text-xs p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                className="bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
                 id="listing-image-url"
               />
             </div>

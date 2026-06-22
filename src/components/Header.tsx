@@ -6,13 +6,16 @@ interface HeaderProps {
   setActiveTab: (tab: 'directory' | 'predictor' | 'list') => void;
   config: {
     usingSupabase: boolean;
+    supabaseConfigured: boolean;
+    forceLocalMode: boolean;
     supabaseUrl: string | null;
     hasKey: boolean;
   };
   totalCount: number;
+  onToggleDatabase: (forceLocal: boolean) => void;
 }
 
-export default function Header({ activeTab, setActiveTab, config, totalCount }: HeaderProps) {
+export default function Header({ activeTab, setActiveTab, config, totalCount, onToggleDatabase }: HeaderProps) {
   const [showConfigInfo, setShowConfigInfo] = React.useState(false);
 
   return (
@@ -94,40 +97,66 @@ export default function Header({ activeTab, setActiveTab, config, totalCount }: 
               <button
                 type="button"
                 onClick={() => setShowConfigInfo(!showConfigInfo)}
-                className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+                className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-bold cursor-pointer transition-all ${
                   config.usingSupabase 
-                    ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/55' 
-                    : 'bg-amber-950/40 text-amber-400 border border-amber-900/55'
+                    ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/55 shadow-xs shadow-emerald-950' 
+                    : 'bg-amber-950/40 text-amber-400 border border-amber-900/55 shadow-xs shadow-amber-950'
                 }`}
                 id="db-status-badge"
               >
+                <div className={`w-2 h-2 rounded-full animate-pulse ${config.usingSupabase ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                 <Database className="w-3.5 h-3.5" />
-                <span>{config.usingSupabase ? 'Supabase Connected' : 'Local Storage'}</span>
+                <span>{config.usingSupabase ? 'Supabase Active' : 'Local JSON Active'}</span>
                 <HelpCircle className="w-3 h-3 text-slate-500" />
               </button>
 
               {showConfigInfo && (
                 <div className="absolute right-0 top-full mt-2 w-80 bg-slate-950 text-slate-200 rounded-xl p-4 shadow-xl text-xs z-50 leading-relaxed border border-slate-800 animate-fadeIn" id="config-info-popover">
                   <h4 className="font-semibold text-sm mb-1.5 text-indigo-400 flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Database Connectivity
+                    <Database className="w-4 h-4" /> Data Storage Manager
                   </h4>
                   {config.usingSupabase ? (
-                    <div className="space-y-2">
-                      <p>The application is successfully writing to and reading from your live production Supabase cluster.</p>
+                    <div className="space-y-3">
+                      <p>The application is connected to and writing directly to your remote Supabase cloud cluster:</p>
                       <p className="font-mono text-[10px] text-slate-400 break-all bg-slate-900 p-1.5 rounded">
                         Endpoint: {config.supabaseUrl}
                       </p>
+                      <div className="pt-2 border-t border-slate-800">
+                        <p className="text-slate-400 mb-2">If your cloud database limits are reached or returning 0 homes, activate local storage fallback:</p>
+                        <button
+                          type="button"
+                          onClick={() => onToggleDatabase(true)}
+                          className="w-full py-2 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-lg text-center text-xs transition-colors cursor-pointer"
+                        >
+                          🔒 Toggle to Force Local File Mode
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <p>The application is currently saving listings permanently in a local server file (<code className="bg-slate-900 text-amber-400 px-1 py-0.5 rounded">properties.json</code>) in AI Studio.</p>
-                      <div className="border-t border-slate-800 pt-2 text-slate-400">
-                        To activate Supabase, insert your secrets in the AI Studio environment:
-                        <ul className="list-disc list-inside mt-1 space-y-1 text-slate-500">
-                          <li>SUPABASE_URL</li>
-                          <li>SUPABASE_KEY</li>
-                        </ul>
-                      </div>
+                    <div className="space-y-3">
+                      <p>The application is keeping all properties saved safely inside the local server database file (<code className="bg-slate-900 text-amber-400 px-1 py-0.5 rounded">properties.json</code>) in AI Studio.</p>
+                      <p className="text-emerald-400 font-medium">✨ This guarantees 100% database availability without being blocked by Supabase limits or quota restrictions!</p>
+                      
+                      {config.supabaseConfigured ? (
+                        <div className="pt-2 border-t border-slate-800">
+                          <p className="text-slate-400 mb-2">Supabase credentials are detected in your workspace! Choose to write to cloud:</p>
+                          <button
+                            type="button"
+                            onClick={() => onToggleDatabase(false)}
+                            className="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-lg text-center text-xs transition-colors cursor-pointer"
+                          >
+                            ⚡ Connect to Cloud Supabase
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="border-t border-slate-800 pt-2 text-slate-400">
+                          Want cloud storage? Paste the following environment keys into your AI Studio workspace Settings:
+                          <ul className="list-disc list-inside mt-1 space-y-0.5 text-slate-500 font-mono text-[10px]">
+                            <li>SUPABASE_URL</li>
+                            <li>SUPABASE_KEY</li>
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

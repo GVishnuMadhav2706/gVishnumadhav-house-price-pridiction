@@ -28,6 +28,8 @@ export default function App() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [config, setConfig] = useState({
     usingSupabase: false,
+    supabaseConfigured: false,
+    forceLocalMode: true,
     supabaseUrl: null as string | null,
     hasKey: false,
   });
@@ -70,6 +72,27 @@ export default function App() {
     } catch (err: any) {
       console.error('Fetch error:', err);
       setErrorMessage(err.message || 'Failed to connect to the backend development server.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleDatabase = async (forceLocal: boolean) => {
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/toggle-database', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ local: forceLocal })
+      });
+      if (res.ok) {
+        await fetchData();
+      } else {
+        const errorData = await res.json();
+        alert(errorData.error || 'Failed to toggle storage engine mode.');
+      }
+    } catch (err: any) {
+      alert('Error toggling database mode: ' + err.message);
     } finally {
       setIsLoading(false);
     }
@@ -168,6 +191,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         config={config} 
         totalCount={properties.length}
+        onToggleDatabase={handleToggleDatabase}
       />
 
       {/* Main content body */}

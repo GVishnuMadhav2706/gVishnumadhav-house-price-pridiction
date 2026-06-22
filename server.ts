@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 import { createServer as createViteServer } from 'vite';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
-import { INITIAL_PROPERTIES } from './src/initialData.js';
+import { INITIAL_PROPERTIES } from './src/initialData';
 
 dotenv.config();
 
@@ -19,6 +19,7 @@ const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY ||
 
 let supabase: any = null;
 let isSupabaseActive = false;
+let forceLocalMode = true; // Use local JSON file database by default to bypass Supabase limits and errors
 
 if (supabaseUrl && supabaseKey) {
   try {
@@ -45,6 +46,24 @@ async function ensureLocalData() {
 
   try {
     await fs.access(DATA_FILE);
+    // Auto-migrate or reseed if old Western mock properties are present
+    const dataRaw = await fs.readFile(DATA_FILE, 'utf-8');
+    const existing = JSON.parse(dataRaw);
+    const hasOldStructures = existing.some((p: any) => 
+      p.image_url?.includes('photo-158058777152') || 
+      p.image_url?.includes('photo-15640137999') ||
+      p.title?.includes('Scenic 3 BHK Apartment') ||
+      p.title?.includes('Premium 3 BHK')
+    );
+    if (hasOldStructures) {
+      console.log('🔄 Old mock properties detected. Migrating database to authentic Indian middle class houses...');
+      const seeded = INITIAL_PROPERTIES.map((prop, idx) => ({
+        ...prop,
+        id: idx + 1,
+        created_at: new Date(Date.now() - idx * 2 * 60 * 60 * 1000).toISOString(),
+      }));
+      await fs.writeFile(DATA_FILE, JSON.stringify(seeded, null, 2), 'utf-8');
+    }
   } catch (err) {
     // File doesn't exist, write seed data
     const seeded = INITIAL_PROPERTIES.map((prop, idx) => ({
@@ -53,7 +72,7 @@ async function ensureLocalData() {
       created_at: new Date(Date.now() - idx * 2 * 60 * 60 * 1000).toISOString(),
     }));
     await fs.writeFile(DATA_FILE, JSON.stringify(seeded, null, 2), 'utf-8');
-    console.log('✅ Seeded 25 local sample properties successfully.');
+    console.log('✅ Seeded local sample middle class properties successfully.');
   }
 }
 
@@ -88,16 +107,37 @@ app.get('/api/health', (req, res) => {
 // Configuration endpoint for frontend UI awareness
 app.get('/api/config', (req, res) => {
   res.json({
-    usingSupabase: isSupabaseActive,
+    usingSupabase: isSupabaseActive && !forceLocalMode,
+    supabaseConfigured: !!(supabaseUrl && supabaseKey),
+    forceLocalMode,
     supabaseUrl: supabaseUrl ? `${supabaseUrl.substring(0, 15)}...` : null,
     hasKey: !!supabaseKey
+  });
+});
+
+// Endpoint to toggle force local mode
+app.post('/api/toggle-database', (req, res) => {
+  const { local } = req.body;
+  if (local === true || local === 'true') {
+    forceLocalMode = true;
+  } else {
+    if (isSupabaseActive) {
+      forceLocalMode = false;
+    } else {
+      return res.status(400).json({ error: 'Supabase is not configured or failed to initialize.' });
+    }
+  }
+  res.json({
+    success: true,
+    usingSupabase: isSupabaseActive && !forceLocalMode,
+    forceLocalMode
   });
 });
 
 // GET /api/properties -> fetch properties (from Supabase if configured, fallback to local)
 app.get('/api/properties', async (req, res) => {
   try {
-    if (isSupabaseActive && supabase) {
+    if (isSupabaseActive && supabase && !forceLocalMode) {
       console.log('Fetching properties from Supabase...');
       const { data, error } = await supabase
         .from('properties')
@@ -185,7 +225,7 @@ app.post('/api/properties', async (req, res) => {
     // Write locally first as durable back-up
     const savedLocal = await saveLocalProperty(propertyPayload);
 
-    if (isSupabaseActive && supabase) {
+    if (isSupabaseActive && supabase && !forceLocalMode) {
       console.log('Inserting property into Supabase...');
       const { data, error } = await supabase
         .from('properties')
