@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Property } from '../types';
 import { MapPin, Phone, MessageSquare, Building2, Calendar, Droplets, Car, Shield, Ruler } from 'lucide-react';
 
@@ -8,6 +8,7 @@ interface PropertyCardProps {
 }
 
 export default function PropertyCard({ property }: PropertyCardProps) {
+  const [showContact, setShowContact] = useState(false);
   
   // Format Indian Price Currency neatly in words/Lakhs/Crores if to Buy, else Month Rent
   const formatCurrency = (val: number) => {
@@ -157,39 +158,74 @@ export default function PropertyCard({ property }: PropertyCardProps) {
         </div>
 
         {/* Owner Details & Direct WhatsApp/Call */}
-        <div className="border-t border-slate-100 pt-4 mt-auto">
+        <div className="border-t border-slate-100 pt-4 mt-auto flex flex-col gap-2.5">
           
-          <div className="flex items-center justify-between mb-3 text-xs">
-            <span className="text-slate-500 font-medium">Verified Owner:</span>
-            <span className="font-extrabold text-indigo-900 bg-indigo-50 px-2.5 py-1 rounded-md uppercase tracking-wide text-[10px]">
-              {property.owner_name}
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowContact(!showContact)}
+            className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs sm:text-sm rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer"
+            id={`contact-owner-btn-${property.id}`}
+          >
+            <Phone className="w-4 h-4 text-white" />
+            <span>{showContact ? 'Hide Contact Info' : 'Contact Owner'}</span>
+          </button>
 
-          {/* Communication Links */}
-          <div className="grid grid-cols-2 gap-2" id={`owner-callout-${property.id}`}>
-            
-            <a
-              href={`tel:${property.phone}`}
-              className="flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-slate-100 hover:text-indigo-950 text-slate-700 text-xs font-black py-2.5 px-3 rounded-xl border border-slate-200 transition-colors cursor-pointer"
-              id={`dial-btn-${property.id}`}
+          {showContact && (
+            <div 
+              className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex flex-col gap-3 animate-fade-in"
+              id={`contact-panel-${property.id}`}
             >
-              <Phone className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Call Owner</span>
-            </a>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500 font-medium">Verified Owner:</span>
+                <span className="font-extrabold text-indigo-900 bg-indigo-50 px-2.2 py-0.5 rounded uppercase tracking-wide text-[10px]">
+                  {property.owner_name}
+                </span>
+              </div>
 
-            <a
-              href={getWhatsAppLink(property.phone, property.title)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black py-2.5 px-3 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer"
-              id={`whatsapp-btn-${property.id}`}
-            >
-              <MessageSquare className="w-3.5 h-3.5 animate-bounce-slow" />
-              <span>WhatsApp</span>
-            </a>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500 font-medium">Direct Line:</span>
+                <span className="font-mono text-slate-700 font-bold">{property.phone}</span>
+              </div>
 
-          </div>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <a
+                  href={`tel:${property.phone}`}
+                  className="flex items-center justify-center gap-1.5 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold py-2 px-2.5 rounded-lg border border-slate-200 transition-colors cursor-pointer"
+                  id={`dial-btn-${property.id}`}
+                >
+                  <Phone className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Call Direct</span>
+                </a>
+
+                <a
+                  href={getWhatsAppLink(property.phone, property.title)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1.5 text-white text-xs font-bold py-2 px-2.5 rounded-lg transition-colors cursor-pointer"
+                  id={`whatsapp-btn-${property.id}`}
+                  style={{ backgroundColor: '#0d9488' }}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  <span>WhatsApp</span>
+                </a>
+              </div>
+
+              {/* Dummy broker connection service as specified in task 6 */}
+              <div className="pt-2 border-t border-slate-200 text-center">
+                <a 
+                  href="#book-viewing-dummy" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert('Status: Connecting you with verified representative for "' + property.title + '"... (This is a working dummy link)');
+                  }}
+                  className="text-[10px] text-indigo-600 hover:text-indigo-805 hover:underline font-bold"
+                  id={`tour-link-${property.id}`}
+                >
+                  Schedule Free Tour / Connect (Dummy Link)
+                </a>
+              </div>
+            </div>
+          )}
 
         </div>
 

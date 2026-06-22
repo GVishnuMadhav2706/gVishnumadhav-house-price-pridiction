@@ -265,11 +265,10 @@ app.get('/api/properties', async (req, res) => {
     }
 
     if (isSupabaseActive && supabase && !forceLocalMode) {
-      console.log('Fetching properties from Supabase...');
+      console.log('Fetching properties from Supabase "house" table...');
       const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from('house')
+        .select('*');
 
       if (error) {
         console.warn('⚠️ Supabase fetch error, falling back to local database:', error.message);
@@ -277,14 +276,36 @@ app.get('/api/properties', async (req, res) => {
         return res.json({ data: localData, source: 'local_fallback', error: error.message });
       }
 
-      // If the Supabase request succeeds but table is empty, we can return empty or seed locally or return local fallback
-      if (!data || data.length === 0) {
-        console.log('Supabase properties table is empty. Injecting local seeded properties.');
+      // Map 'house' columns (title, location, rent, image) to client-expected Property interface
+      const mappedData = data ? data.map((item: any, idx: number) => ({
+        id: item.id || `sb_${idx}`,
+        title: item.title || 'Untitled House',
+        location: item.location || 'Kakinada',
+        type: item.type || 'Individual House',
+        listing_type: 'Rent',
+        price: Number(item.rent) ? Number(item.rent) * 100 : 0,
+        rent: Number(item.rent) || 0,
+        description: item.description || `Beautiful house at ${item.location}. Contact owner for details.`,
+        image_url: item.image || item.image_url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80',
+        owner_name: item.owner_name || 'Property Owner',
+        phone: item.phone || '+91 94401 23456',
+        sqft: item.sqft || 1200,
+        bedrooms: item.bedrooms || 2,
+        bathrooms: item.bathrooms || 2,
+        building_age: item.building_age || 3,
+        water_supply: item.water_supply || 'Both',
+        parking: item.parking !== false,
+        created_at: item.created_at || new Date().toISOString()
+      })) : [];
+
+      // If the Supabase table is empty, we inject beautiful local seed properties
+      if (mappedData.length === 0) {
+        console.log('Supabase "house" table is empty. Injecting local seeded properties.');
         const localData = await getLocalProperties();
         return res.json({ data: localData, source: 'local_seeded', notice: 'Supabase table was empty.' });
       }
 
-      return res.json({ data, source: 'supabase' });
+      return res.json({ data: mappedData, source: 'supabase' });
     } else {
       const data = await getLocalProperties();
       return res.json({ data, source: 'local' });
@@ -375,10 +396,15 @@ app.post('/api/properties', async (req, res) => {
     }
 
     if (isSupabaseActive && supabase && !forceLocalMode) {
-      console.log('Inserting property into Supabase...');
+      console.log('Inserting property into Supabase "house" table...');
       const { data, error } = await supabase
-        .from('properties')
-        .insert([propertyPayload])
+        .from('house')
+        .insert([{
+          title: propertyPayload.title,
+          location: propertyPayload.location,
+          rent: propertyPayload.rent || Math.round(propertyPayload.price / 100) || 12000,
+          image: propertyPayload.image_url
+        }])
         .select();
 
       if (error) {
@@ -392,9 +418,27 @@ app.post('/api/properties', async (req, res) => {
         });
       }
 
+      const returnedItem = data && data[0] ? {
+        id: data[0].id || savedLocal.id,
+        title: data[0].title || propertyPayload.title,
+        location: data[0].location || propertyPayload.location,
+        rent: Number(data[0].rent) || propertyPayload.rent,
+        price: Number(data[0].rent) ? Number(data[0].rent) * 105 : propertyPayload.price,
+        image_url: data[0].image || propertyPayload.image_url,
+        type: propertyPayload.type,
+        listing_type: propertyPayload.listing_type,
+        description: propertyPayload.description,
+        owner_name: propertyPayload.owner_name,
+        phone: propertyPayload.phone,
+        sqft: propertyPayload.sqft,
+        bedrooms: propertyPayload.bedrooms,
+        bathrooms: propertyPayload.bathrooms,
+        created_at: data[0].created_at || new Date().toISOString()
+      } : savedLocal;
+
       return res.json({
         success: true,
-        data: data ? data[0] : savedLocal,
+        data: returnedItem,
         source: 'supabase'
       });
     } else {
