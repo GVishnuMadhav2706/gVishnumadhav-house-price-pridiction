@@ -46,17 +46,20 @@ async function ensureLocalData() {
 
   try {
     await fs.access(DATA_FILE);
-    // Auto-migrate or reseed if old Western mock properties are present
+    // Auto-migrate or reseed if old Western mock properties or food/DNA images are present
     const dataRaw = await fs.readFile(DATA_FILE, 'utf-8');
     const existing = JSON.parse(dataRaw);
     const hasOldStructures = existing.some((p: any) => 
-      p.image_url?.includes('photo-158058777152') || 
-      p.image_url?.includes('photo-15640137999') ||
-      p.title?.includes('Scenic 3 BHK Apartment') ||
-      p.title?.includes('Premium 3 BHK')
+      p.image_url?.includes('1626808642875') || 
+      p.image_url?.includes('1625813506062') ||
+      p.image_url?.includes('1623659212445') ||
+      p.image_url?.includes('1628624747186') ||
+      p.image_url?.includes('1628595351029') ||
+      p.image_url?.includes('1598257006458') ||
+      p.title?.includes('Scenic 3 BHK Apartment')
     );
     if (hasOldStructures) {
-      console.log('🔄 Old mock properties detected. Migrating database to authentic Indian middle class houses...');
+      console.log('🔄 Old food, DNA, or mock properties detected. Migrating database to pristine Kakinada houses...');
       const seeded = INITIAL_PROPERTIES.map((prop, idx) => ({
         ...prop,
         id: idx + 1,
