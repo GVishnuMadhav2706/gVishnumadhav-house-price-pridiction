@@ -135,7 +135,24 @@ app.get('/api/properties', async (req, res) => {
 
 // POST /api/properties -> Add new property listing
 app.post('/api/properties', async (req, res) => {
-  const { title, location, type, listing_type, price, rent, description, image_url, owner_name, phone } = req.body;
+  const { 
+    title, 
+    location, 
+    type, 
+    listing_type, 
+    price, 
+    rent, 
+    description, 
+    image_url, 
+    owner_name, 
+    phone,
+    sqft,
+    bedrooms,
+    bathrooms,
+    building_age,
+    water_supply,
+    parking
+  } = req.body;
 
   // Basic validation
   if (!title || !location || !type || !listing_type || !owner_name || !phone) {
@@ -156,6 +173,12 @@ app.post('/api/properties', async (req, res) => {
     image_url: image_url || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80',
     owner_name,
     phone,
+    sqft: Number(sqft) || undefined,
+    bedrooms: Number(bedrooms) || undefined,
+    bathrooms: Number(bathrooms) || undefined,
+    building_age: Number(building_age) || undefined,
+    water_supply: water_supply || undefined,
+    parking: parking === true || parking === 'true'
   };
 
   try {

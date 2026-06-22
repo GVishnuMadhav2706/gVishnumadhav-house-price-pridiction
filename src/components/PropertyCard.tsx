@@ -1,6 +1,6 @@
 import React from 'react';
 import { Property } from '../types';
-import { MapPin, Phone, MessageSquare, Building, Calendar, DollarSign, Sparkles } from 'lucide-react';
+import { MapPin, Phone, MessageSquare, Building2, Calendar, Droplets, Car, Shield, Ruler } from 'lucide-react';
 
 interface PropertyCardProps {
   property: Property;
@@ -12,7 +12,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
   // Format Indian Price Currency neatly in words/Lakhs/Crores if to Buy, else Month Rent
   const formatCurrency = (val: number) => {
     if (val >= 10000000) {
-      return `₹${(val / 10000000).toFixed(2)} Crore`;
+      return `₹${(val / 10000000).toFixed(2)} Cr`;
     } else if (val >= 100000) {
       return `₹${(val / 100000).toFixed(1)} Lakhs`;
     }
@@ -42,12 +42,12 @@ export default function PropertyCard({ property }: PropertyCardProps) {
 
   return (
     <article 
-      className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
+      className="bg-white rounded-2xl border border-slate-250/60 overflow-hidden shadow-xs hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col h-full"
       id={`property-card-${property.id}`}
     >
       
       {/* Property Image Container */}
-      <div className="relative aspect-video w-full overflow-hidden bg-slate-100" id={`card-image-box-${property.id}`}>
+      <div className="relative aspect-video w-full overflow-hidden bg-slate-900" id={`card-image-box-${property.id}`}>
         <img
           src={property.image_url}
           alt={property.title}
@@ -55,8 +55,8 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           referrerPolicy="no-referrer"
           loading="lazy"
           onError={(e) => {
-            // Safe fallback image if Unsplash fails
-            e.currentTarget.src = "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80";
+            // Safe fallback image for Indian villas
+            e.currentTarget.src = "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&w=800&q=80";
           }}
         />
         
@@ -64,25 +64,25 @@ export default function PropertyCard({ property }: PropertyCardProps) {
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5" id={`card-badges-${property.id}`}>
           
           {/* Sale/Rent Acquisition badge */}
-          <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+          <span className={`text-[10px] font-extrabold px-3 py-1 rounded-md uppercase tracking-wider text-white shadow-sm ${
             property.listing_type === 'Buy' 
-              ? 'bg-rose-500 text-white shadow-xs' 
-              : 'bg-emerald-500 text-white shadow-xs'
+              ? 'bg-rose-600' 
+              : 'bg-indigo-600'
           }`}>
             For {property.listing_type === 'Buy' ? 'Sale' : 'Rent'}
           </span>
 
           {/* Direct Owner Free Badge */}
-          <span className="text-[10px] font-bold bg-slate-900/80 backdrop-blur-xs text-white px-2.5 py-1 rounded-full flex items-center gap-1">
-            <Sparkles className="w-2.5 h-2.5 text-amber-400" />
-            No Broker
+          <span className="text-[10px] font-bold bg-slate-950/80 backdrop-blur-md text-amber-400 border border-slate-700/50 px-2.5 py-1 rounded-md flex items-center gap-1">
+            <Shield className="w-2.5 h-2.5 text-amber-400" />
+            No Broker Fee
           </span>
 
         </div>
 
         {/* Location banner overlay in image bottom */}
-        <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-xs text-slate-800 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1">
-          <MapPin className="w-3.5 h-3.5 text-rose-500" />
+        <div className="absolute bottom-3 left-3 bg-slate-950/90 backdrop-blur-md text-white border border-slate-700/30 px-2.5 py-1 rounded-lg text-xs font-semibold shadow-xs flex items-center gap-1">
+          <MapPin className="w-3.5 h-3.5 text-amber-400" />
           <span>{property.location}</span>
         </div>
       </div>
@@ -92,74 +92,100 @@ export default function PropertyCard({ property }: PropertyCardProps) {
         <div>
           
           {/* Classification Specs */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-2" id={`card-meta-${property.id}`}>
-            <Building className="w-3.5 h-3.5 text-slate-400" />
-            <span>{property.type}</span>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 mb-2.5" id={`card-meta-${property.id}`}>
+            <Building2 className="w-3.5 h-3.5 text-indigo-500" />
+            <span className="font-medium text-indigo-850 bg-indigo-50 px-2 py-0.5 rounded text-[11px]">{property.type}</span>
             <span className="text-slate-300">•</span>
             <Calendar className="w-3.5 h-3.5 text-slate-400" />
             <span>Listed {formatDate(property.created_at)}</span>
           </div>
 
           {/* Pricing Highlight */}
-          <div className="mb-2" id={`card-price-${property.id}`}>
+          <div className="mb-2.5" id={`card-price-${property.id}`}>
             {property.listing_type === 'Buy' ? (
-              <p className="text-xl font-extrabold text-slate-900 tracking-tight flex items-baseline">
+              <p className="text-2xl font-black text-indigo-950 tracking-tight flex items-baseline">
                 {formatCurrency(property.price)}
-                <span className="text-xs font-normal text-slate-500 ml-1.5">Direct Price</span>
+                <span className="text-xs font-normal text-slate-500 ml-2">Total Price</span>
               </p>
             ) : (
-              <p className="text-xl font-extrabold text-emerald-700 tracking-tight flex items-baseline">
+              <p className="text-2xl font-black text-indigo-950 tracking-tight flex items-baseline">
                 {formatCurrency(property.rent)}
-                <span className="text-xs font-normal text-slate-500 ml-1">/ Month</span>
+                <span className="text-xs font-normal text-slate-500 ml-1.5">/ Month Rent</span>
               </p>
             )}
           </div>
 
           {/* Title Header */}
-          <h3 className="font-bold text-slate-800 text-base leading-snug mb-2 line-clamp-2 hover:text-emerald-700 transition-colors">
+          <h3 className="font-extrabold text-slate-900 text-base leading-snug mb-3 line-clamp-2 hover:text-indigo-650 transition-colors">
             {property.title}
           </h3>
 
-          {/* Reason / Contextual Description */}
-          <p className="text-xs sm:text-sm text-slate-600 line-clamp-3 bg-slate-50 border border-slate-100 p-2.5 rounded-lg mb-4 italic">
-            "{property.description || 'No descriptive details available yet.'}"
+          {/* Dynamic Specifications Strip */}
+          <div className="grid grid-cols-2 gap-2 text-xs text-slate-650 bg-slate-50/80 border border-slate-100 rounded-xl p-3 mb-4.5" id={`card-spec-grid-${property.id}`}>
+            <div className="flex items-center gap-1.5">
+              <Ruler className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Area: <strong className="font-bold text-slate-800">{property.sqft || 'N/A'} Sq.Ft</strong></span>
+            </div>
+            
+            <div className="flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Rooms: <strong className="font-bold text-slate-800">{property.bedrooms ? `${property.bedrooms} BHK` : 'N/A'}</strong></span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <Droplets className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Water: <strong className="font-bold text-slate-800">{property.water_supply === 'Both' ? 'Sweet Municipal+Bore' : property.water_supply || 'N/A'}</strong></span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <Car className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Parking: <strong className="font-bold text-slate-800">{property.parking ? 'Yes, Available' : 'No Parking'}</strong></span>
+            </div>
+
+            {property.building_age !== undefined && (
+              <div className="flex items-center gap-1.5 col-span-2 border-t border-slate-200/50 pt-1.5 mt-1 text-[11px] text-slate-500">
+                <span>Building Age: <strong className="text-slate-700 font-bold">{property.building_age === 0 ? 'Brand New' : `${property.building_age} Years Old`}</strong></span>
+              </div>
+            )}
+          </div>
+
+          {/* Contextual Description */}
+          <p className="text-xs sm:text-sm text-slate-600 line-clamp-3 bg-indigo-50/30 border border-indigo-100/40 p-3 rounded-xl mb-5 italic text-slate-705">
+            "{property.description || 'No additional descriptive details published.'}"
           </p>
 
         </div>
 
-        {/* Owner Details & Direct Dialers */}
+        {/* Owner Details & Direct WhatsApp/Call */}
         <div className="border-t border-slate-100 pt-4 mt-auto">
           
-          {/* Direct Owner Name Display */}
           <div className="flex items-center justify-between mb-3 text-xs">
-            <span className="text-slate-500 font-medium">Owner Details:</span>
-            <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-sm">
+            <span className="text-slate-500 font-medium">Verified Owner:</span>
+            <span className="font-extrabold text-indigo-900 bg-indigo-50 px-2.5 py-1 rounded-md uppercase tracking-wide text-[10px]">
               {property.owner_name}
             </span>
           </div>
 
-          {/* Communication Links Group */}
+          {/* Communication Links */}
           <div className="grid grid-cols-2 gap-2" id={`owner-callout-${property.id}`}>
             
-            {/* Standard Call Button */}
             <a
               href={`tel:${property.phone}`}
-              className="flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 text-xs font-bold py-2.5 px-3 rounded-lg border border-slate-200 hover:border-emerald-200 transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-slate-100 hover:text-indigo-950 text-slate-700 text-xs font-black py-2.5 px-3 rounded-xl border border-slate-200 transition-colors cursor-pointer"
               id={`dial-btn-${property.id}`}
             >
-              <Phone className="w-3.5 h-3.5" />
+              <Phone className="w-3.5 h-3.5 text-indigo-600" />
               <span>Call Owner</span>
             </a>
 
-            {/* Direct WhatsApp Message Tunnel */}
             <a
               href={getWhatsAppLink(property.phone, property.title)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 px-3 rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer"
+              className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black py-2.5 px-3 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer"
               id={`whatsapp-btn-${property.id}`}
             >
-              <MessageSquare className="w-3.5 h-3.5" />
+              <MessageSquare className="w-3.5 h-3.5 animate-bounce-slow" />
               <span>WhatsApp</span>
             </a>
 

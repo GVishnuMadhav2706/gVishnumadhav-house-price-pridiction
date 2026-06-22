@@ -14,6 +14,13 @@ export interface Property {
   owner_name: string;
   phone: string;
   created_at: string;
+  // New details filling options
+  sqft?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  building_age?: number;
+  water_supply?: 'Municipal' | 'Borewell' | 'Both';
+  parking?: boolean;
 }
 
 export const KAKINADA_LOCATIONS = [

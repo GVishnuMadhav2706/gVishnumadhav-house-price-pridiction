@@ -1,36 +1,35 @@
 import React, { useState } from 'react';
-import { X, Building2, MapPin, Tag, Landmark, User, Phone, AlignLeft, Info, HelpCircle } from 'lucide-react';
+import { Building2, MapPin, Tag, Landmark, User, Phone, AlignLeft, Info, HelpCircle, CheckCircle2, Ruler, Droplets, Car, Calendar, Sparkles } from 'lucide-react';
 import { KAKINADA_LOCATIONS, PropertyType, ListingType, Property } from '../types';
 
 interface AddPropertyFormProps {
-  onClose: () => void;
   onSuccess: (newProperty: Property) => void;
 }
 
 const PRESET_IMAGES = [
   {
-    label: "Modern Villa",
-    url: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80",
-    preview: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=150&q=80"
+    label: "G+1 Indian Villa",
+    url: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&w=800&q=80",
+    preview: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&w=150&q=80"
   },
   {
-    label: "Family Duplex",
-    url: "https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=800&q=80",
-    preview: "https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&w=150&q=80"
+    label: "Modern Flat Roof House",
+    url: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80",
+    preview: "https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=150&q=80"
   },
   {
-    label: "Cozy Apartment",
-    url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
-    preview: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=150&q=80"
+    label: "Indian City Flat Block",
+    url: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80",
+    preview: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=150&q=80"
   },
   {
-    label: "Charming Tiny House",
-    url: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80",
-    preview: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=150&q=80"
+    label: "Cozy Suburb Cottage",
+    url: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=800&q=80",
+    preview: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=150&q=80"
   }
 ];
 
-export default function AddPropertyForm({ onClose, onSuccess }: AddPropertyFormProps) {
+export default function AddPropertyForm({ onSuccess }: AddPropertyFormProps) {
   
   // Field States
   const [title, setTitle] = useState('');
@@ -43,6 +42,14 @@ export default function AddPropertyForm({ onClose, onSuccess }: AddPropertyFormP
   const [imageUrl, setImageUrl] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [phone, setPhone] = useState('');
+  
+  // Additional Detail States (Filling options requested!)
+  const [sqft, setSqft] = useState('1100');
+  const [bedrooms, setBedrooms] = useState('2');
+  const [bathrooms, setBathrooms] = useState('2');
+  const [buildingAge, setBuildingAge] = useState('2');
+  const [waterSupply, setWaterSupply] = useState<'Municipal' | 'Borewell' | 'Both'>('Both');
+  const [parking, setParking] = useState(true);
 
   // Status States
   const [loading, setLoading] = useState(false);
@@ -50,7 +57,14 @@ export default function AddPropertyForm({ onClose, onSuccess }: AddPropertyFormP
   const [success, setSuccess] = useState(false);
 
   // Selector state for image option
-  const [selectedPresetIdx, setSelectedPresetIdx] = useState<number>(-1);
+  const [selectedPresetIdx, setSelectedPresetIdx] = useState<number>(0);
+
+  React.useEffect(() => {
+    // default set first preset as base
+    if (!imageUrl) {
+      setImageUrl(PRESET_IMAGES[0].url);
+    }
+  }, []);
 
   const handleSelectPreset = (url: string, index: number) => {
     setImageUrl(url);
@@ -62,15 +76,18 @@ export default function AddPropertyForm({ onClose, onSuccess }: AddPropertyFormP
     setError(null);
 
     // Validation
-    if (!title.trim()) return setError('Please specify a title for your property listing.');
-    if (!location) return setError('Please choose a valid Kakinada area.');
-    if (!ownerName.trim()) return setError('Please enter the owner name.');
-    if (!phone.toLocalesString && !phone.trim()) return setError('Please enter a reach-out phone number.');
+    if (!title.trim()) return setError('Please specify a title/headline for your property.');
+    if (!location) return setError('Please choose a valid Kakinada neighborhood.');
+    if (!ownerName.trim()) return setError('Please enter the owner/contact person name.');
+    if (!phone.trim()) return setError('Please enter a reach-out contact phone number.');
 
-    // Phone verification (should be numeric, roughly 10+ digits)
     const phoneDigitsCount = phone.replace(/\D/g, '').length;
     if (phoneDigitsCount < 10) {
-      return setError('Please enter a valid 10-digit phone/WhatsApp number.');
+      return setError('Please enter a valid 10-digit Indian mobile or WhatsApp number.');
+    }
+
+    if (Number(sqft) <= 100) {
+      return setError('Square footage should be a realistic building area (minimum 100 sq.ft).');
     }
 
     // Capture financial stats depending on Rent vs Buy
@@ -87,13 +104,6 @@ export default function AddPropertyForm({ onClose, onSuccess }: AddPropertyFormP
       payloadRent = r;
     }
 
-    // Set fallback image if empty
-    let finalImageUrl = imageUrl.trim();
-    if (!finalImageUrl) {
-      // Pick a random preset
-      finalImageUrl = PRESET_IMAGES[Math.floor(Math.random() * PRESET_IMAGES.length)].url;
-    }
-
     try {
       setLoading(true);
 
@@ -108,16 +118,22 @@ export default function AddPropertyForm({ onClose, onSuccess }: AddPropertyFormP
           price: payloadPrice,
           rent: payloadRent,
           description,
-          image_url: finalImageUrl,
+          image_url: imageUrl,
           owner_name: ownerName,
           phone,
+          sqft: Number(sqft),
+          bedrooms: Number(bedrooms),
+          bathrooms: Number(bathrooms),
+          building_age: Number(buildingAge),
+          water_supply: waterSupply,
+          parking: parking
         }),
       });
 
       const resBody = await response.json();
 
       if (!response.ok) {
-        throw new Error(resBody.error || 'Failed to submit property listing.');
+        throw new Error(resBody.error || 'Failed to publish your property listing.');
       }
 
       setSuccess(true);
@@ -125,10 +141,18 @@ export default function AddPropertyForm({ onClose, onSuccess }: AddPropertyFormP
         onSuccess(resBody.data);
       }
 
-      // Automatically reset and close after a delay
+      // Reset form variables
+      setTitle('');
+      setPrice('');
+      setRent('');
+      setDescription('');
+      setOwnerName('');
+      setPhone('');
+      
+      // Auto success banner duration reset
       setTimeout(() => {
-        onClose();
-      }, 1500);
+        setSuccess(false);
+      }, 5000);
 
     } catch (err: any) {
       setError(err.message || 'An unexpected connection error occurred.');
@@ -138,339 +162,472 @@ export default function AddPropertyForm({ onClose, onSuccess }: AddPropertyFormP
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" id="add-property-drawer-root">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" id="add-property-full-page">
       
-      {/* Semi-transparent Dark Backdrop */}
-      <div 
-        className="absolute inset-0 bg-slate-900/45 backdrop-blur-xs transition-opacity animate-fadeIn" 
-        onClick={onClose}
-        id="drawer-backdrop"
-      />
-
-      {/* Slide-over Container */}
-      <div 
-        className="relative w-full max-w-lg bg-white h-full shadow-2xl flex flex-col z-10 overflow-hidden animate-slideLeft"
-        id="drawer-surface"
-      >
-        
-        {/* Drawer Header */}
-        <div className="px-6 py-4.5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
-              +
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">List Your Property</h2>
-              <p className="text-xs text-emerald-700 font-medium">Free • Direct Owner Info • No Middlemen</p>
-            </div>
+      {/* Side guidance card / Instructions */}
+      <div className="lg:col-span-1 space-y-6">
+        <div className="bg-gradient-to-br from-indigo-900 to-indigo-950 text-white rounded-2xl p-6 shadow-md border border-indigo-800">
+          <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-white mb-4">
+            <Sparkles className="w-6 h-6 text-amber-300 animate-pulse" />
           </div>
-          <button 
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-            id="drawer-close"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <h3 className="text-lg font-black tracking-tight mb-2">Direct Listing Portal</h3>
+          <p className="text-xs text-indigo-200/90 leading-relaxed mb-6">
+            List your rental or sale property for absolutely free. Buyers and tenants will call you directly on WhatsApp or Call. No third-party brokers, no commissions, no hidden service charges!
+          </p>
+
+          <div className="space-y-4 border-t border-indigo-800/60 pt-5 text-xs">
+            <h4 className="font-bold text-amber-300 flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>How To List Successfully?</span>
+            </h4>
+            <ul className="space-y-3 text-indigo-150 list-none">
+              <li className="flex gap-2">
+                <span className="text-amber-400 font-extrabold font-mono shrink-0">1.</span>
+                <span>Select accurate residential details (sq.ft, sweet Godavari water connection, parking structure).</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-amber-400 font-extrabold font-mono shrink-0">2.</span>
+                <span>Upload a clean, bright front facade photo or choose one of our highly typical Indian G+1 / Apartment presets.</span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-amber-400 font-extrabold font-mono shrink-0">3.</span>
+                <span>Ensure your WhatsApp number matches your phone so users can easily start chats.</span>
+              </li>
+            </ul>
+          </div>
         </div>
 
-        {/* Drawer Scrollable Form Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-6 space-y-5" id="listing-form">
-          
-          {/* Display Success Screen */}
-          {success ? (
-            <div className="py-12 flex flex-col items-center justify-center text-center space-y-3" id="submit-success-indicator">
-              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-4xl animate-bounce">
-                🎉
-              </div>
-              <h3 className="text-xl font-bold text-slate-800">Listed Successfully!</h3>
-              <p className="text-sm text-slate-500 max-w-sm">
-                Your direct-owner property is now visible to active buyers and tenants across Kakinada.
+        {/* Local Advantage note */}
+        <div className="bg-amber-500/5 border border-amber-500/15 rounded-2xl p-5 text-xs text-stone-700 space-y-2">
+          <h4 className="font-bold text-amber-850 flex items-center gap-1.5">
+            <Info className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>Kakinada Municipal Regulations</span>
+          </h4>
+          <p className="leading-relaxed">
+            In prime regions (Venkat Nagar, Suryaraopeta, Gandhinagar), properties having <strong>dual sweet water lines</strong> (Municipal and Borewell) enjoy up to 10% premium on rents and sell faster. Make sure to specify this accurately!
+          </p>
+        </div>
+      </div>
+
+      {/* Main Form workspace */}
+      <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs" id="form-container-panel">
+        
+        <div className="mb-6 pb-4 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Enter Your Property Specifications</h2>
+            <p className="text-xs text-slate-500">Provide direct details to publish in our public directory.</p>
+          </div>
+          <span className="text-xs bg-slate-100 font-semibold px-2.5 py-1 text-slate-600 rounded-full">
+            No Verification Wait
+          </span>
+        </div>
+
+        {success && (
+          <div className="bg-emerald-50 border border-emerald-250 text-emerald-900 rounded-xl p-5 mb-6 flex flex-col sm:flex-row items-center gap-3.5" id="form-success-banner">
+            <div className="w-12 h-12 bg-emerald-600 rounded-full text-white flex items-center justify-center text-xl shrink-0">
+              ✓
+            </div>
+            <div>
+              <h4 className="font-extrabold text-sm text-emerald-950">Property Published Successfully!</h4>
+              <p className="text-xs text-emerald-800 mt-0.5">
+                Your direct listing is now live, stored in the master database, and visible instantly in "Find Homes".
               </p>
             </div>
-          ) : (
-            <>
-              {error && (
-                <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl p-3 flex gap-2" id="form-error-panel">
-                  <Info className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
-                  <span>{error}</span>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl p-4 mb-6 flex gap-2" id="form-error-banner">
+            <Info className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6" id="house-submit-form">
+          
+          {/* Section 1: Core Description */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-extrabold text-indigo-900 uppercase tracking-wider">1. Core Information</h3>
+            
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                <span>Property Headline / Title</span>
+                <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g., G+1 Independent 3 BHK House with sweet water"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                id="listing-title"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Kakinada Sector Location</span>
+                  <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  required
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  id="listing-location"
+                >
+                  <option value="">Select Neighborhood Area</option>
+                  {KAKINADA_LOCATIONS.map((loc) => (
+                    <option key={loc} value={loc}>
+                      {loc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                  <Building2 className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Property Architectural Category</span>
+                </label>
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value as PropertyType)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  id="listing-type"
+                >
+                  <option value="Apartment">Apartment (Flat block)</option>
+                  <option value="Individual House">Individual House (G+1/G+2 Villa)</option>
+                  <option value="Small House">Small House (Row cottage/Studio)</option>
+                </select>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Section 2: Pricing & Mode */}
+          <div className="space-y-4 pt-4 border-t border-slate-100">
+            <h3 className="text-xs font-extrabold text-indigo-900 uppercase tracking-wider">2. Pricing Model</h3>
+            
+            <div className="bg-slate-50 p-1.5 rounded-xl flex border border-slate-200/80" id="segmented-pricing">
+              <button
+                type="button"
+                onClick={() => setListingType('Rent')}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  listingType === 'Rent' 
+                    ? 'bg-indigo-600 text-white shadow-xs' 
+                    : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                Renting (Monthly Rent Payment)
+              </button>
+              <button
+                type="button"
+                onClick={() => setListingType('Buy')}
+                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                  listingType === 'Buy' 
+                    ? 'bg-rose-600 text-white shadow-xs' 
+                    : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                Buy Out / Direct Outright Sale
+              </button>
+            </div>
+
+            <div className="bg-indigo-50/20 rounded-2xl border border-indigo-100/40 p-4.5">
+              {listingType === 'Rent' ? (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <Tag className="w-3.5 h-3.5 text-indigo-600" />
+                      Expected Rent (Per Month)
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">in INR</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-3 text-slate-400 font-bold block">₹</span>
+                    <input
+                      type="number"
+                      required
+                      min="100"
+                      placeholder="e.g., 11000"
+                      value={rent}
+                      onChange={(e) => setRent(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl text-slate-800 text-sm p-3 pl-8 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                      id="listing-rent-input"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <Landmark className="w-3.5 h-3.5 text-rose-600" />
+                      Expected Selling Amount
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">in INR</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-3 text-slate-400 font-bold block">₹</span>
+                    <input
+                      type="number"
+                      required
+                      min="1000"
+                      placeholder="e.g., 4500000"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl text-slate-800 text-sm p-3 pl-8 pr-20 focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+                      id="listing-price-input"
+                    />
+                    <span className="absolute right-3.5 top-3 text-xs text-indigo-700 font-black pointer-events-none">
+                      {Number(price) >= 100000 ? `₹${(Number(price) / 100000).toFixed(1)} Lakhs` : 'INR'}
+                    </span>
+                  </div>
                 </div>
               )}
+            </div>
+          </div>
 
-              {/* Title Input */}
+          {/* Section 3: Comprehensive Structural Specs (Basic Details filling options requested!) */}
+          <div className="space-y-4 pt-4 border-t border-slate-100">
+            <h3 className="text-xs font-extrabold text-indigo-900 uppercase tracking-wider">
+              3. Structural Dimensions & Utilities (Basic Details Options)
+            </h3>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              
+              {/* Sqft. Area */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                  <span>Listing Headline / Title</span>
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Ruler className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Area (Sq.Ft)</span>
+                  <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  required
+                  placeholder="e.g., 1200"
+                  value={sqft}
+                  onChange={(e) => setSqft(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  id="listing-sqft"
+                />
+              </div>
+
+              {/* Bedrooms count */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                  <span>BHK / Bedrooms</span>
+                </label>
+                <select
+                  value={bedrooms}
+                  onChange={(e) => setBedrooms(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  id="listing-bedrooms"
+                >
+                  <option value="1">1 BHK</option>
+                  <option value="2">2 BHK (Most Common)</option>
+                  <option value="3">3 BHK (Premium)</option>
+                  <option value="4">4 BHK (Duplex)</option>
+                  <option value="5">5 BHK+ (Villas)</option>
+                </select>
+              </div>
+
+              {/* Bathrooms count */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Droplets className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Bathrooms</span>
+                </label>
+                <select
+                  value={bathrooms}
+                  onChange={(e) => setBathrooms(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  id="listing-bathrooms"
+                >
+                  <option value="1">1 Bathroom</option>
+                  <option value="2">2 Bathrooms</option>
+                  <option value="3">3 Bathrooms</option>
+                  <option value="4">4 Bathrooms+</option>
+                </select>
+              </div>
+
+              {/* Building age */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Building Age (Yrs)</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="40"
+                  value={buildingAge}
+                  onChange={(e) => setBuildingAge(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  id="listing-age"
+                />
+              </div>
+
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              
+              {/* Water Supply */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Droplets className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Water Supply Type</span>
+                </label>
+                <select
+                  value={waterSupply}
+                  onChange={(e) => setWaterSupply(e.target.value as 'Municipal' | 'Borewell' | 'Both')}
+                  className="bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  id="listing-water"
+                >
+                  <option value="Both">Both Municipal (Sweet Godavari) & Borewell</option>
+                  <option value="Municipal animate-pulse">Municipal Sweet Connection Only</option>
+                  <option value="Borewell">Borewell Only (Ground Water)</option>
+                </select>
+              </div>
+
+              {/* Parking Selection checkbox */}
+              <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 mt-5 cursor-pointer hover:bg-slate-100 transition-colors">
+                <input
+                  type="checkbox"
+                  id="listing-parking"
+                  checked={parking}
+                  onChange={(e) => setParking(e.target.checked)}
+                  className="w-5 h-5 accent-indigo-600 rounded cursor-pointer"
+                />
+                <label htmlFor="listing-parking" className="text-xs font-extrabold text-slate-700 select-none cursor-pointer flex items-center gap-1.5">
+                  <Car className="w-4 h-4 text-indigo-500" />
+                  <span>Dedicated Vehicle Car/Bike Parking Porch</span>
+                </label>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Section 4: Owner Details */}
+          <div className="space-y-4 pt-4 border-t border-slate-100">
+            <h3 className="text-xs font-extrabold text-indigo-900 uppercase tracking-wider">4. Contact & Ownership Details</h3>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1_5">
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Owner's Full Name</span>
                   <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g., Spacious Duplex House near JNTU Road"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-sm p-2.5 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                  id="form-title"
+                  placeholder="e.g., M. Venkata Ramana Raju"
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  id="listing-owner-name"
                 />
               </div>
 
-              {/* Grid Location and Property Type */}
-              <div className="grid grid-cols-2 gap-4">
-                
-                {/* Location Select Option */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Area Location</span>
-                    <span className="text-rose-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-sm p-2.5 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-                    id="form-location"
-                  >
-                    <option value="">Select Area</option>
-                    {KAKINADA_LOCATIONS.map((loc) => (
-                      <option key={loc} value={loc}>
-                        {loc}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Property Category Select */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                    <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Property Type</span>
-                  </label>
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value as PropertyType)}
-                    className="bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-sm p-2.5 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-                    id="form-type"
-                  >
-                    <option value="Apartment">Apartment</option>
-                    <option value="Individual House">Individual House</option>
-                    <option value="Small House">Small House</option>
-                  </select>
-                </div>
-
-              </div>
-
-              {/* Listing Mode Toggle (Rent vs Buy) */}
-              <div className="bg-slate-100 p-1.5 rounded-xl flex" id="listing-type-segmented">
-                <button
-                  type="button"
-                  onClick={() => setListingType('Rent')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    listingType === 'Rent' 
-                      ? 'bg-white text-emerald-800 shadow-sm' 
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  Monthly Renting
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setListingType('Buy')}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                    listingType === 'Buy' 
-                      ? 'bg-white text-rose-800 shadow-sm' 
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  Buying / Selling
-                </button>
-              </div>
-
-              {/* Dynamic Prices Block */}
-              <div className="bg-slate-50 rounded-xl border border-dashed border-slate-200 p-4 transition-all">
-                {listingType === 'Rent' ? (
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-slate-600 flex items-center justify-between">
-                      <span className="flex items-center gap-1">
-                        <Tag className="w-3.5 h-3.5 text-emerald-600" />
-                        Monthly Rent Cost
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-normal">in INR per month</span>
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="100"
-                      placeholder="e.g., 9500"
-                      value={rent}
-                      onChange={(e) => setRent(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-lg text-slate-800 text-sm p-2.5 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                      id="form-rent"
-                    />
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      Note: Try to be competitive. Zero commission means you save rent yields!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-bold text-slate-600 flex items-center justify-between">
-                      <span className="flex items-center gap-1">
-                        <Landmark className="w-3.5 h-3.5 text-rose-600" />
-                        Full Selling Price
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-normal">in INR</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        required
-                        min="1000"
-                        placeholder="e.g., 4200000"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        className="bg-white border border-slate-200 rounded-lg text-slate-800 text-sm p-2.5 w-full pr-14 focus:outline-hidden focus:ring-2 focus:ring-rose-500"
-                        id="form-price"
-                      />
-                      <span className="absolute right-3.5 top-2.5 text-xs text-slate-400 font-semibold pointer-events-none">
-                        {Number(price) >= 100000 ? `₹${(Number(price) / 100000).toFixed(1)} Lakhs` : 'INR'}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      Note: Total price of individual houses ranges ₹15L to ₹95L generally depending on LRS/Vaastu.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Owner and Phone */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
-                {/* Owner Name field */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                    <User className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Owner Full Name</span>
-                    <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g., M. Prasad"
-                    value={ownerName}
-                    onChange={(e) => setOwnerName(e.target.value)}
-                    className="bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-sm p-2.5 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                    id="form-owner"
-                  />
-                </div>
-
-                {/* Phone number field */}
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                    <Phone className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Direct Phone / WhatsApp</span>
-                    <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    placeholder="e.g., 9848012345"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-sm p-2.5 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                    id="form-phone"
-                  />
-                </div>
-
-              </div>
-
-              {/* Descriptive fields / Reasons */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
-                  <AlignLeft className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Property Details & Selling Reason</span>
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Direct Mobile Number</span>
+                  <span className="text-rose-500">*</span>
                 </label>
-                <textarea
-                  placeholder="Explain details of water connections, municipal lines, near JNTUK/Hospitals, road dimensions or reasons for selling for genuine buyers."
-                  rows={3}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-sm p-2.5 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                  id="form-description"
+                <input
+                  type="tel"
+                  required
+                  placeholder="e.g., 9848012345"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                  id="listing-phone"
                 />
               </div>
 
-              {/* Select Photo presets block */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-600 flex items-center justify-between">
-                  <span>House Cover Photo</span>
-                  <span className="text-[10px] text-slate-400 font-normal">Click a sample to speed fill</span>
-                </label>
+            </div>
 
-                {/* Preset Options Carousel */}
-                <div className="grid grid-cols-4 gap-2" id="preset-photo-selector">
-                  {PRESET_IMAGES.map((preset, index) => (
-                    <button
-                      key={preset.label}
-                      type="button"
-                      onClick={() => handleSelectPreset(preset.url, index)}
-                      className={`relative aspect-square border-2 rounded-lg overflow-hidden cursor-pointer transition-all ${
-                        selectedPresetIdx === index 
-                          ? 'border-emerald-600 ring-2 ring-emerald-100 scale-95 shadow-sm' 
-                          : 'border-slate-200 hover:border-slate-350 hover:scale-102'
-                      }`}
-                      title={preset.label}
-                    >
-                      <img 
-                        src={preset.preview} 
-                        alt={preset.label} 
-                        className="w-full h-full object-cover" 
-                        referrerPolicy="no-referrer"
-                      />
-                      <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] py-0.5 truncate text-center">
-                        {preset.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <AlignLeft className="w-3.5 h-3.5 text-slate-400" />
+                <span>Description & Particular Amenities</span>
+              </label>
+              <textarea
+                placeholder="Give descriptive particulars (e.g. Near Bhanugudi flyover, continuous sweet drinking Godavari pipelines, marble floorings, G+1 floor configuration details)..."
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                id="listing-description"
+              />
+            </div>
+          </div>
 
-                {/* Direct Image URL Paste Input fallback */}
-                <div className="flex flex-col gap-1 mt-2">
-                  <input
-                    type="url"
-                    placeholder="Or paste custom image link here..."
-                    value={imageUrl}
-                    onChange={(e) => {
-                      setImageUrl(e.target.value);
-                      setSelectedPresetIdx(-1); // Reset presets active selection indicator
-                    }}
-                    className="bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-xs p-2.5 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                    id="form-custom-image-url"
-                  />
-                </div>
-              </div>
+          {/* Section 5: Cover Photo */}
+          <div className="space-y-3 pt-4 border-t border-slate-100">
+            <div>
+              <h3 className="text-xs font-extrabold text-indigo-900 uppercase tracking-wider">5. Cover Photo Elevation</h3>
+              <p className="text-[10px] text-slate-400 mt-1">Select one of our high quality Indian real estate elevations or supply a custom image URL link.</p>
+            </div>
 
-              {/* Submit Action block */}
-              <div className="pt-4 border-t border-slate-100 flex items-center gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="image-preset-selectors">
+              {PRESET_IMAGES.map((preset, idx) => (
                 <button
+                  key={preset.label}
                   type="button"
-                  onClick={onClose}
-                  className="flex-1 py-3 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 cursor-pointer text-center"
+                  onClick={() => handleSelectPreset(preset.url, idx)}
+                  className={`relative aspect-video sm:aspect-square border-2 rounded-xl overflow-hidden cursor-pointer transition-all ${
+                    selectedPresetIdx === idx 
+                      ? 'border-indigo-600 ring-4 ring-indigo-100 scale-98' 
+                      : 'border-slate-200 hover:border-slate-300 hover:scale-102'
+                  }`}
                 >
-                  Cancel
+                  <img src={preset.preview} alt={preset.label} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <span className="absolute bottom-0 inset-x-0 bg-slate-950/80 text-white text-[9px] py-1 truncate text-center font-semibold">
+                    {preset.label}
+                  </span>
                 </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-[2] py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs shadow-md transition-all active:scale-98 cursor-pointer text-center disabled:opacity-50 disabled:pointer-events-none"
-                  id="form-submit-btn"
-                >
-                  {loading ? 'Submitting Listing...' : 'Publish Property Listing'}
-                </button>
-              </div>
+              ))}
+            </div>
 
-            </>
-          )}
+            <div className="flex flex-col gap-1 mt-1">
+              <input
+                type="url"
+                placeholder="Or paste standard direct image URL link (jpg, png, unsplash structure)..."
+                value={imageUrl}
+                onChange={(e) => {
+                  setImageUrl(e.target.value);
+                  setSelectedPresetIdx(-1);
+                }}
+                className="bg-slate-50 border border-slate-200 rounded-xl text-slate-850 text-xs p-3 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                id="listing-image-url"
+              />
+            </div>
+          </div>
+
+          {/* Action Trigger Submit */}
+          <div className="pt-6 border-t border-slate-100">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-4.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-xl text-sm shadow-md hover:shadow-lg transition-all active:scale-99 cursor-pointer text-center disabled:opacity-50 disabled:pointer-events-none tracking-wide"
+              id="submit-property-btn"
+            >
+              {loading ? 'Registering details...' : 'Publish Direct Owner Listing Now'}
+            </button>
+          </div>
 
         </form>
+
       </div>
 
     </div>
