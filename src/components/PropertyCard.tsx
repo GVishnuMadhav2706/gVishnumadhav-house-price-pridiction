@@ -9,6 +9,7 @@ interface PropertyCardProps {
 
 export default function PropertyCard({ property }: PropertyCardProps) {
   const [showContact, setShowContact] = useState(false);
+  const [imgError, setImgError] = useState(false);
   
   // Format Indian Price Currency neatly in words/Lakhs/Crores if to Buy, else Month Rent
   const formatCurrency = (val: number) => {
@@ -49,17 +50,24 @@ export default function PropertyCard({ property }: PropertyCardProps) {
       
       {/* Property Image Container */}
       <div className="relative aspect-video w-full overflow-hidden bg-slate-900" id={`card-image-box-${property.id}`}>
-        <img
-          src={property.image_url}
-          alt={property.title}
-          className="w-full h-full object-cover transform duration-500 hover:scale-108"
-          referrerPolicy="no-referrer"
-          loading="lazy"
-          onError={(e) => {
-            // Safe fallback image for Indian villas
-            e.currentTarget.src = "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&w=800&q=80";
-          }}
-        />
+        {!imgError && property.image_url ? (
+          <img
+            src={property.image_url}
+            alt={property.title}
+            className="w-full h-full object-cover transform duration-500 hover:scale-108"
+            referrerPolicy="no-referrer"
+            loading="lazy"
+            onError={() => {
+              setImgError(true);
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex flex-col items-center justify-center p-4 text-center">
+            <Building2 className="w-10 h-10 text-indigo-400 mb-2 animate-pulse" />
+            <span className="text-white font-extrabold text-xs px-2 truncate w-full tracking-tight">{property.title}</span>
+            <span className="text-slate-400 text-[9px] uppercase tracking-wider mt-1">{property.type} • {property.location}</span>
+          </div>
+        )}
         
         {/* Deal Badges overlays */}
         <div className="absolute top-3 left-3 flex flex-wrap gap-1.5" id={`card-badges-${property.id}`}>
