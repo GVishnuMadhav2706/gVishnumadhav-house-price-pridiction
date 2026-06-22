@@ -32,6 +32,8 @@ export default function App() {
     forceLocalMode: true,
     supabaseUrl: null as string | null,
     hasKey: false,
+    hasFirebaseKey: false,
+    firebaseProject: 'kakinada-house-finder'
   });
 
   // Filters State for Page 1 Directory

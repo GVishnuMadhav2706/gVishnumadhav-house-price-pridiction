@@ -56,10 +56,11 @@ async function ensureLocalData() {
       p.image_url?.includes('1628624747186') ||
       p.image_url?.includes('1628595351029') ||
       p.image_url?.includes('1598257006458') ||
+      p.image_url?.includes('1582268611958') ||
       p.title?.includes('Scenic 3 BHK Apartment')
     );
     if (hasOldStructures) {
-      console.log('🔄 Old food, DNA, or mock properties detected. Migrating database to pristine Kakinada houses...');
+      console.log('🔄 Old food, DNA, mock properties, or old image detected. Migrating database to pristine Kakinada houses...');
       const seeded = INITIAL_PROPERTIES.map((prop, idx) => ({
         ...prop,
         id: idx + 1,
@@ -100,6 +101,109 @@ async function saveLocalProperty(prop: any) {
   return newProp;
 }
 
+// Helper to retrieve and format properties from Firestore REST API
+async function getFirestoreProperties(apiKey: string) {
+  const url = `https://firestore.googleapis.com/v1/projects/kakinada-house-finder/databases/(default)/documents/houses?key=${apiKey}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Firestore response error: ${response.status} - ${errorText}`);
+  }
+  const json = await response.json();
+  if (!json.documents) {
+    return [];
+  }
+
+  return json.documents.map((doc: any, index: number) => {
+    const fields = doc.fields || {};
+    
+    // Safety helper for string fields
+    const getString = (f: any) => f?.stringValue || '';
+    
+    // Safety helper for numeric fields
+    const getNumber = (f: any) => {
+      if (f?.integerValue !== undefined) return parseInt(f.integerValue, 10);
+      if (f?.doubleValue !== undefined) return parseFloat(f.doubleValue);
+      if (f?.stringValue !== undefined) return parseFloat(f.stringValue) || 0;
+      return 0;
+    };
+
+    // Safety helper for boolean fields
+    const getBoolean = (f: any) => {
+      if (f?.booleanValue !== undefined) return f.booleanValue;
+      if (f?.stringValue !== undefined) return f.stringValue === 'true';
+      return false;
+    };
+
+    const docId = doc.name ? doc.name.split('/').pop() : `fs_${index}`;
+    const rent = getNumber(fields.rent);
+    const location = getString(fields.location) || 'Kakinada';
+    
+    return {
+      id: docId,
+      title: getString(fields.title) || `Charming Kakinada Property`,
+      location: location,
+      type: getString(fields.type) || 'Apartment',
+      listing_type: rent > 0 ? 'Rent' : 'Buy',
+      price: getNumber(fields.price) || (rent > 0 ? rent * 100 : 5000000),
+      rent: rent,
+      description: getString(fields.description) || `Fantastic house listed in ${location}. Contact owner directly.`,
+      // Support both 'image' and 'image_url' as requested by user
+      image_url: getString(fields.image) || getString(fields.image_url) || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=80',
+      owner_name: getString(fields.owner_name) || 'Property Owner',
+      phone: getString(fields.phone) || '+91 94401 23456',
+      sqft: getNumber(fields.sqft) || 1200,
+      bedrooms: getNumber(fields.bedrooms) || 2,
+      bathrooms: getNumber(fields.bathrooms) || 2,
+      building_age: getNumber(fields.building_age) || 3,
+      water_supply: getString(fields.water_supply) || 'Both',
+      parking: fields.parking ? getBoolean(fields.parking) : true,
+      created_at: doc.createTime || new Date().toISOString()
+    };
+  });
+}
+
+// Helper to save property to Firestore REST API
+async function saveFirestoreProperty(apiKey: string, prop: any) {
+  const url = `https://firestore.googleapis.com/v1/projects/kakinada-house-finder/databases/(default)/documents/houses?key=${apiKey}`;
+  
+  const payload = {
+    fields: {
+      title: { stringValue: prop.title || '' },
+      location: { stringValue: prop.location || '' },
+      rent: { integerValue: String(prop.rent || 0) },
+      // Support both 'image' and 'image_url' as requested by user
+      image: { stringValue: prop.image_url || '' },
+      image_url: { stringValue: prop.image_url || '' },
+      price: { integerValue: String(prop.price || 0) },
+      type: { stringValue: prop.type || 'Apartment' },
+      description: { stringValue: prop.description || '' },
+      owner_name: { stringValue: prop.owner_name || '' },
+      phone: { stringValue: prop.phone || '' },
+      sqft: { integerValue: prop.sqft ? String(prop.sqft) : '1000' },
+      bedrooms: { integerValue: prop.bedrooms ? String(prop.bedrooms) : '2' },
+      bathrooms: { integerValue: prop.bathrooms ? String(prop.bathrooms) : '2' },
+      building_age: { integerValue: prop.building_age ? String(prop.building_age) : '2' },
+      water_supply: { stringValue: prop.water_supply || 'Both' },
+      parking: { booleanValue: !!prop.parking }
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Firestore creation error: ${response.status} - ${errorText}`);
+  }
+
+  const json = await response.json();
+  return json;
+}
+
 // API Routes
 
 // Express health check endpoint
@@ -114,7 +218,9 @@ app.get('/api/config', (req, res) => {
     supabaseConfigured: !!(supabaseUrl && supabaseKey),
     forceLocalMode,
     supabaseUrl: supabaseUrl ? `${supabaseUrl.substring(0, 15)}...` : null,
-    hasKey: !!supabaseKey
+    hasKey: !!supabaseKey,
+    hasFirebaseKey: !!process.env.FIREBASE_API_KEY,
+    firebaseProject: 'kakinada-house-finder'
   });
 });
 
@@ -137,9 +243,27 @@ app.post('/api/toggle-database', (req, res) => {
   });
 });
 
-// GET /api/properties -> fetch properties (from Supabase if configured, fallback to local)
+// GET /api/properties -> fetch properties (from Firestore if configured, otherwise falls back)
 app.get('/api/properties', async (req, res) => {
   try {
+    const firebaseApiKey = process.env.FIREBASE_API_KEY;
+
+    if (firebaseApiKey) {
+      console.log('Fetching properties from Firestore REST API...');
+      try {
+        const firestoreData = await getFirestoreProperties(firebaseApiKey);
+        return res.json({ data: firestoreData, source: 'firebase' });
+      } catch (firestoreErr: any) {
+        console.warn('⚠️ Firestore fetch error, falling back to local database:', firestoreErr.message);
+        const localData = await getLocalProperties();
+        return res.json({ 
+          data: localData, 
+          source: 'local_fallback_firebase_failed', 
+          error: firestoreErr.message 
+        });
+      }
+    }
+
     if (isSupabaseActive && supabase && !forceLocalMode) {
       console.log('Fetching properties from Supabase...');
       const { data, error } = await supabase
@@ -227,6 +351,28 @@ app.post('/api/properties', async (req, res) => {
   try {
     // Write locally first as durable back-up
     const savedLocal = await saveLocalProperty(propertyPayload);
+
+    const firebaseApiKey = process.env.FIREBASE_API_KEY;
+    if (firebaseApiKey) {
+      console.log('Saving property to Firestore REST API...');
+      try {
+        const firestoreResponse = await saveFirestoreProperty(firebaseApiKey, propertyPayload);
+        const docId = firestoreResponse.name ? firestoreResponse.name.split('/').pop() : savedLocal.id;
+        return res.json({
+          success: true,
+          data: { ...propertyPayload, id: docId },
+          source: 'firebase'
+        });
+      } catch (firestoreErr: any) {
+        console.error('⚠️ Firestore insert error, fallback to local confirmation:', firestoreErr.message);
+        return res.json({
+          success: true,
+          data: savedLocal,
+          source: 'local_only_firebase_failed',
+          firebaseError: firestoreErr.message
+        });
+      }
+    }
 
     if (isSupabaseActive && supabase && !forceLocalMode) {
       console.log('Inserting property into Supabase...');

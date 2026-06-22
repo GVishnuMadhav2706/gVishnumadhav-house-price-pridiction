@@ -10,6 +10,8 @@ interface HeaderProps {
     forceLocalMode: boolean;
     supabaseUrl: string | null;
     hasKey: boolean;
+    hasFirebaseKey?: boolean;
+    firebaseProject?: string;
   };
   totalCount: number;
   onToggleDatabase: (forceLocal: boolean) => void;
@@ -88,6 +90,14 @@ export default function Header({ activeTab, setActiveTab, config, totalCount, on
               </button>
             </nav>
 
+            {/* Firebase Sync Active Badge */}
+            {config.hasFirebaseKey && (
+              <div className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-bold bg-[#FFCA28]/10 text-[#FFCA28] border border-[#FFCA28]/35 shadow-xs" id="firebase-status-badge">
+                <div className="w-2 h-2 rounded-full bg-[#FFCA28] animate-pulse" />
+                <span>Firebase Sync Active</span>
+              </div>
+            )}
+
             {/* Database Badge */}
             <div 
               className="relative hidden sm:block"
@@ -98,15 +108,23 @@ export default function Header({ activeTab, setActiveTab, config, totalCount, on
                 type="button"
                 onClick={() => setShowConfigInfo(!showConfigInfo)}
                 className={`flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-bold cursor-pointer transition-all ${
-                  config.usingSupabase 
-                    ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/55 shadow-xs shadow-emerald-950' 
-                    : 'bg-amber-950/40 text-amber-400 border border-amber-900/55 shadow-xs shadow-amber-950'
+                  config.hasFirebaseKey
+                    ? 'bg-amber-950/20 text-slate-300 border border-slate-700/50'
+                    : config.usingSupabase 
+                      ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-900/55 shadow-xs shadow-emerald-950' 
+                      : 'bg-amber-950/40 text-amber-400 border border-amber-900/55 shadow-xs shadow-amber-950'
                 }`}
                 id="db-status-badge"
               >
-                <div className={`w-2 h-2 rounded-full animate-pulse ${config.usingSupabase ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                <div className={`w-2 h-2 rounded-full animate-pulse ${config.hasFirebaseKey ? 'bg-amber-400' : config.usingSupabase ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                 <Database className="w-3.5 h-3.5" />
-                <span>{config.usingSupabase ? 'Supabase Active' : 'Local JSON Active'}</span>
+                <span>
+                  {config.hasFirebaseKey 
+                    ? 'Firebase Engine' 
+                    : config.usingSupabase 
+                      ? 'Supabase Active' 
+                      : 'Local JSON Active'}
+                </span>
                 <HelpCircle className="w-3 h-3 text-slate-500" />
               </button>
 
@@ -115,7 +133,13 @@ export default function Header({ activeTab, setActiveTab, config, totalCount, on
                   <h4 className="font-semibold text-sm mb-1.5 text-indigo-400 flex items-center gap-1.5">
                     <Database className="w-4 h-4" /> Data Storage Manager
                   </h4>
-                  {config.usingSupabase ? (
+                  {config.hasFirebaseKey ? (
+                    <div className="space-y-3">
+                      <p className="text-amber-400 font-bold">🔥 Syncing Live with Firebase Firestore!</p>
+                      <p>Properties are fetched and saved directly in your remote <code className="bg-slate-900 text-amber-300 px-1 py-0.5 rounded">{config.firebaseProject}</code> Firestore collection via Google REST API.</p>
+                      <p className="text-slate-400">To disable or switch back, remove the <code className="bg-slate-900 text-slate-300 px-1 py-0.5 rounded">FIREBASE_API_KEY</code> from your workspace Secrets.</p>
+                    </div>
+                  ) : config.usingSupabase ? (
                     <div className="space-y-3">
                       <p>The application is connected to and writing directly to your remote Supabase cloud cluster:</p>
                       <p className="font-mono text-[10px] text-slate-400 break-all bg-slate-900 p-1.5 rounded">
@@ -137,26 +161,11 @@ export default function Header({ activeTab, setActiveTab, config, totalCount, on
                       <p>The application is keeping all properties saved safely inside the local server database file (<code className="bg-slate-900 text-amber-400 px-1 py-0.5 rounded">properties.json</code>) in AI Studio.</p>
                       <p className="text-emerald-400 font-medium">✨ This guarantees 100% database availability without being blocked by Supabase limits or quota restrictions!</p>
                       
-                      {config.supabaseConfigured ? (
-                        <div className="pt-2 border-t border-slate-800">
-                          <p className="text-slate-400 mb-2">Supabase credentials are detected in your workspace! Choose to write to cloud:</p>
-                          <button
-                            type="button"
-                            onClick={() => onToggleDatabase(false)}
-                            className="w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-lg text-center text-xs transition-colors cursor-pointer"
-                          >
-                            ⚡ Connect to Cloud Supabase
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="border-t border-slate-800 pt-2 text-slate-400">
-                          Want cloud storage? Paste the following environment keys into your AI Studio workspace Settings:
-                          <ul className="list-disc list-inside mt-1 space-y-0.5 text-slate-500 font-mono text-[10px]">
-                            <li>SUPABASE_URL</li>
-                            <li>SUPABASE_KEY</li>
-                          </ul>
-                        </div>
-                      )}
+                      <div className="border-t border-slate-800 pt-2 text-slate-400 space-y-1">
+                        <p>Want cloud storage? Paste either key in AI Studio workspace Secrets:</p>
+                        <p className="text-[10px] text-amber-400">🔥 FIREBASE_API_KEY (for live Firestore sync)</p>
+                        <p className="text-[10px] text-indigo-400">⚡ SUPABASE_URL / SUPABASE_KEY</p>
+                      </div>
                     </div>
                   )}
                 </div>

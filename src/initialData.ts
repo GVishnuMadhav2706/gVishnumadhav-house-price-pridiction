@@ -45,7 +45,7 @@ export const INITIAL_PROPERTIES: Omit<Property, 'id' | 'created_at'>[] = [
     price: 6800000,
     rent: 0,
     description: "Sea-breeze facing modern apartment on Beach Road. Dual luxury balconies, spacious modular kitchen, lift facility, power backup and dedicated car garage.",
-    image_url: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&w=800&q=80",
+    image_url: "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
     owner_name: "K. Raghupathi Raju",
     phone: "+919848012345",
     sqft: 1650,
